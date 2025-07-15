@@ -1,59 +1,30 @@
-# code modified, tweaked and tailored from code by bertwert
-# on RPi forum thread topic 91796
 import RPi.GPIO as GPIO
 import time
 
+from internal import display
+
 GPIO.setmode(GPIO.BCM)
 
-# GPIO ports for the 7seg pins
-segments = (11, 4, 23, 8, 7, 10, 18, 25)
-# 7seg_segment_pins (11,7,4,2,1,10,5,3) +  100R inline
+SEGMENTS = (11, 4, 23, 8, 7, 10, 18, 25)
+DIGITS = (22, 27, 17, 24)
 
-for segment in segments:
-    GPIO.setup(segment, GPIO.OUT)
-    GPIO.output(segment, 0)
+def main():
+    try:
+        module = display.Display(
+            refresh_rate=0.005,
+            segment_pins=SEGMENTS,
+            digit_pins=DIGITS
+        )
 
-# GPIO ports for the digit 0-3 pins
-# digits = (22,)
-digits = (22, 27, 17, 24)
-# 7seg_digit_pins (12,9,8,6) digits 0-3 respectively
+        while True:
+            # Retrieve time
+            s = time.ctime()[11:13] + time.ctime()[14:16]
 
-for digit in digits:
-    GPIO.setup(digit, GPIO.OUT)
-    GPIO.output(digit, 1)
+            # Render time on module 7 Segment 4 Digit display
+            module.render(s)
 
-num = {' ': (0, 0, 0, 0, 0, 0, 0),
-       '0': (0, 0, 0, 0, 0, 0, 1),
-       '1': (1, 0, 0, 1, 1, 1, 1),
-       '2': (0, 0, 1, 0, 0, 1, 0),
-       '3': (0, 0, 0, 0, 1, 1, 0),
-       '4': (1, 0, 0, 1, 1, 0, 0),
-       '5': (0, 1, 0, 0, 1, 0, 0),
-       '6': (0, 1, 0, 0, 0, 0, 0),
-       '7': (0, 0, 0, 1, 1, 1, 1),
-       '8': (0, 0, 0, 0, 0, 0, 0),
-       '9': (0, 0, 0, 0, 1, 0, 0)}
+    finally:
+        GPIO.cleanup()
 
-def run_clock():
-    while True:
-        s = time.ctime()[11:13] + time.ctime()[14:16]
-        for digit in range(0, 4):
-            other_displays = digits[:digit] + digits[digit+1:]
-            for other_display in other_displays:
-                GPIO.output(other_display, 0)
-
-            for loop in range(0,7):
-                GPIO.output(segments[loop], num[s[digit]][loop])
-                GPIO.output(25, 1)
-
-            time.sleep(0.002)
-            for other_display in other_displays:
-                GPIO.output(other_display, 1)
-
-
-
-
-try:
-   run_clock()
-finally:
-    GPIO.cleanup()
+if __name__ == "__main__":
+    main()
