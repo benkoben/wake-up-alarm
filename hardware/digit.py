@@ -20,7 +20,7 @@ class Digit():
 
     # Renders a number to the digit
     def display(self, number):
-        if int(number) > 9 or int(number) < 0:
+        if number not in numbers.NUMS.keys():
             raise Exception("number cannot be more than 9 or less than 0")
         
         for segment in range(0,7):
