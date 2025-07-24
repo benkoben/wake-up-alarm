@@ -8,6 +8,8 @@ load_dotenv()
 @dataclass()
 class Config():
     button_1_pin: int = 15
+    button_2_pin: int = 26
+    button_3_pin: int = 16
 
     # 7 seg_segment_pins (11,7,4,2,1,10,5,3) +  100R inline
     segment_pins: tuple = (11, 4, 23, 8, 7, 10, 18, 25)  # GPIO pins
