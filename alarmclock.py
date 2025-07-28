@@ -24,20 +24,6 @@ class Alarmclock():
             self._cfg.button_3_pin,
         )
 
-    def show_time(self):
-        return time.ctime()[11:13] + time.ctime()[14:16]
-
-    def get_alarm_time(self) -> str:
-        if self._alarm_time == "":
-            return " 0FF"
-
-        return self._alarm_time
-
-    def set_alarm_time(self):
-        # Open a new buffer that shows time, starting from 0000
-        while True:
-            pass
-
     # start runs the alarm clock's main control loop
     def start(self):
         while True:
@@ -73,7 +59,7 @@ class Alarmclock():
                 continue
 
             # Render time on module 7 Segment 4 Digit display
-            self._display.update_content(self.show_time())
+            self._display.update_content(buttons.current_time())
             self._display.render()
 
 
