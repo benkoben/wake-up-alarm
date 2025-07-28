@@ -1,33 +1,27 @@
 import time
+import buttons
 import RPi.GPIO as GPIO
 
 from hardware import display
-from hardware import button
-from config import Config, WeatherConfig
+from config import Config
 from datetime import datetime
 
-from modules import weather_api
 
 class Alarmclock():
     def __init__(self):
         self._alarm_time = ""
         self._alarm_mode_active = False
         self._cfg = Config()
+
         self._display = display.Display(
             self._cfg.segment_pins,
             self._cfg.digit_pins,
         )
 
-        # Initiatize hardware
-        self.mode_button = button.Button(self._cfg.button_1_pin)
-        self.increase_button = button.Button(self._cfg.button_2_pin)
-        self.decrease_button = button.Button(self._cfg.button_3_pin)
-
-        # Initialize modules
-        self.weather_module = weather_api.Location(
-            WeatherConfig.weather_api_key,
-            WeatherConfig.latitude,
-            WeatherConfig.longitude,
+        self.buttons = buttons.NormalMode(
+            self._cfg.button_1_pin,
+            self._cfg.button_2_pin,
+            self._cfg.button_3_pin,
         )
 
     def show_time(self):
@@ -48,34 +42,35 @@ class Alarmclock():
     def start(self):
         while True:
 
-            if GPIO.input(self.mode_button.pin) == GPIO.HIGH:
+            if self.buttons.mode_button.is_high():
                 count = datetime.now()
-
-                while GPIO.input(self.mode_button.pin) == GPIO.HIGH:
+                while self.buttons.mode_button.is_high():
                     self._display.update_content(
-                        self.get_alarm_time(),
+                        self.buttons.mode_button_event('press'),
                     )
                     self._display.render()
-                    if (datetime.now() - count).seconds > 3:
-                        self._alarm_mode_active = True
-                        print("now in set alarm mode")
-                        break
+
+                    if (datetime.now() - count).seconds == 3:
+                        # switch state
+                        self.buttons = self.buttons.mode_button_event('hold')
+                        print(f"switched mode to {self.buttons}")
+                        time.sleep(1)
+
                 self._alarm_mode_active = False
 
+            if self.buttons.aux1_button.is_high():
+                self._display.update_content(
+                    self.buttons.aux1_event(None)
+                )
+                self._display.render()
+                continue
 
-            if GPIO.input(self.increase_button.pin) == GPIO.HIGH:
-                if not self._alarm_mode_active:
-                    self._display.update_content(
-                            self.weather_module.get_weather(),
-                    )
-                    self._display.render()
-                    continue
-                else:
-                    # TODO:  implement alarm decrease
-                    pass
-
-            if GPIO.input(self.decrease_button.pin) == GPIO.HIGH:
-                print("decrease presssed")
+            if self.buttons.aux2_button.is_high():
+                self._display.update_content(
+                    self.buttons.aux2_event(None)
+                )
+                self._display.render()
+                continue
 
             # Render time on module 7 Segment 4 Digit display
             self._display.update_content(self.show_time())
