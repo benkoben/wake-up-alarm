@@ -1,13 +1,13 @@
 import RPi.GPIO as GPIO
 
-from alarmclock import Alarmclock
+from device import Device
 
 GPIO.setmode(GPIO.BCM)
 
 
 def main():
     try:
-        Alarmclock().start()
+        Device().start()
     finally:
         GPIO.cleanup()
 

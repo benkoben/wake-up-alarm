@@ -42,11 +42,18 @@ class Display():
             raise Exception("content cannot exceed lenght of 4")
         self.content = content
 
-    def render(self):
+    def render(self, dot_number=None):
+
+        if dot_number and dot_number > len(self._digits):
+            raise Exception(f"dot_number cannot be larger than {len(self._digits)}")
 
         for n, d in enumerate(self._digits):
+
             d.turn_on()
             d.display(self.content[n])
+
+            if dot_number is not None and n == dot_number:
+                d._activate_dot()
 
             time.sleep(self._refresh_rate)
             d.turn_off()
