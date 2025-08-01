@@ -11,6 +11,9 @@ class Config():
     button_2_pin: int = 26
     button_3_pin: int = 16
 
+    # Sound
+    buzzer_pin: int = 21
+
     # 7 seg_segment_pins (11,7,4,2,1,10,5,3) +  100R inline
     segment_pins: tuple = (11, 4, 23, 8, 7, 10, 18, 25)  # GPIO pins
     digit_pins: tuple = (22, 27, 17, 24)  # GPIO pins
