@@ -37,7 +37,6 @@ class Display():
             GPIO.output(segment, GPIO.LOW)
 
     def update_content(self, content: str):
-        # TODO: Make working with decimals easier
         if len(content) > 4:
             raise Exception("content cannot exceed lenght of 4")
         self.content = content

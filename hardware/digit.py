@@ -1,12 +1,12 @@
 import RPi.GPIO as GPIO
 
-from . import numbers
+from . import characters
 
 class Digit():
     def __init__(self, pin: int, segments: tuple):
         self._activation_pin = pin
         self._segments = segments
-        self._numbers = numbers.NUMS
+        self._numbers = characters.NUMS
         self._setout()
 
     def _setout(self):
@@ -33,10 +33,10 @@ class Digit():
         GPIO.output(25, GPIO.HIGH)
 
     # Renders a number to the digit
-    def display(self, number):
-        if number not in numbers.NUMS.keys():
+    def display(self, character):
+        if character not in characters.NUMS.keys():
             raise Exception("number cannot be more than 9 or less than 0")
 
         for segment in range(0,7):
-            GPIO.output(self._segments[segment], self._numbers[number][segment])
+            GPIO.output(self._segments[segment], self._numbers[character][segment])
             GPIO.output(25, GPIO.HIGH)

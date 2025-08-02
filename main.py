@@ -6,10 +6,13 @@ GPIO.setmode(GPIO.BCM)
 
 
 def main():
+    device = Device()
+
     try:
-        Device().start()
+        device.start()
     finally:
         GPIO.cleanup()
+        device.shutdown()
 
 
 if __name__ == "__main__":
