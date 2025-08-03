@@ -7,8 +7,10 @@ from internal import alarm
 
 
 class Device():
-    def __init__(self):
-        self.alarmclock = alarmclock.NormalMode(alarm.Alarm())
+    def __init__(self): 
+        self.alarmclock = alarmclock.NormalMode(
+            alarm.Alarm()
+        )
 
     def shutdown(self):
         print("Shutting down...")
@@ -18,16 +20,24 @@ class Device():
     # start runs the alarm clock's main control loop
     def start(self):
         while True:
+            
+            alarm_time_passed = self.alarmclock.current_time > self.alarmclock.alarm.timestamp
+            alarm_active = self.alarmclock.alarm.is_active
+            active_mode = self.alarmclock.__repr__()
+            in_normal_mode = active_mode == "NormalMode"
 
-            # TODO: This logic does not work correctly
-            if datetime.now() > self.alarmclock.alarm_time and self.alarmclock.alarm.is_active:
-                # If the alarm is active and has been surpassed then we need to trigger a sound
-                # and start blinking the display.
-
+            # If the alarm is active and has been surpassed
+            # and the device is operating in NormalMode,
+            # then we need to trigger a sound
+            # and start blinking the display.
+            if alarm_active and alarm_time_passed and in_normal_mode:
+                print(f"{self.alarmclock.current_time} > {self.alarmclock.alarm.timestamp} ?")
                 # Switch from NormalMode to AlarmBeepingMode
                 self.alarmclock = self.alarmclock.mode_button_event('alarm_trigger')
-                print(f"now in {self.alarmclock} mode")
-
+                # This will run a sequence where the buzzer is active until the alarm has been acknowledged.
+                # running...
+                # running...
+                # running...
                 # Switch from AlarmBeepingMode to NormalMode (if the alarm is acknowledged)
                 self.alarmclock = self.alarmclock.mode_button_event('alarm_trigger')
 
@@ -41,7 +51,6 @@ class Device():
                     if (datetime.now() - count).seconds >= 1:
                         # switch state
                         self.alarmclock = self.alarmclock.mode_button_event('hold')
-                        print(f"switched mode to {self.alarmclock}")
                         time.sleep(1)
                         hold_event = True
 
@@ -49,13 +58,11 @@ class Device():
                     self.alarmclock.mode_button_event('press'),
 
             # Middle button (+ / weather)
-            if self.alarmclock.aux1_button.is_high():
-                print("middle button pressed")
+            if self.alarmclock.option1_button.is_high():
                 self.alarmclock.aux1_button_event(None)
 
             # Right button ( - / inside temp )
-            if self.alarmclock.aux2_button.is_high():
-                print("right button pressed")
+            if self.alarmclock.option2_button.is_high():
                 self.alarmclock.aux2_button_event(None)
 
             # Sets the content on the 7 Segment 4 Digit display

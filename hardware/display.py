@@ -5,6 +5,8 @@ from . import digit
 
 _REFRESH_RATE = 0.005
 
+GPIO.setmode(GPIO.BCM)
+
 
 class Display():
 
@@ -49,6 +51,7 @@ class Display():
         for n, d in enumerate(self._digits):
 
             d.turn_on()
+            # print(n, self.content, len(self.content))
             d.display(self.content[n])
 
             if dot_number is not None and n == dot_number:

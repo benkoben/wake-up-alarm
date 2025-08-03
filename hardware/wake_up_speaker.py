@@ -18,5 +18,8 @@ class WakeUpSpeaker():
         except Exception as e:
             print(f"Error playing note: {e}")
 
+    def stop(self):
+        self.buzzer.stop()
+
     def close(self):
         self.buzzer.close()

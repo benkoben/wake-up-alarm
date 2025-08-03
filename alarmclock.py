@@ -2,52 +2,43 @@ import time
 
 from config import WeatherConfig, Config
 from hardware import button, display, wake_up_speaker
-from external import weather_api
+from external import weather_api, alarm_timestamp
 from datetime import datetime, timedelta
 from internal import alarm
 from notes import fur_elise
 
 
-def current_time():
-    return time.ctime()[11:13] + time.ctime()[14:16]
-
-
+# Set the as globals because we do not want to initialize the GPIO pins
+# each time the state machine switches state
+# (NormalMode -> AlarmAdjustMode -> ...).
+CONFIG = Config()
 SPEAKER = wake_up_speaker.WakeUpSpeaker(Config().buzzer_pin)
+MODE_BUTTON = button.Button(CONFIG.button_1_pin)
+OPTION_1_BUTTON = button.Button(CONFIG.button_2_pin)
+OPTION_2_BUTTON = button.Button(CONFIG.button_3_pin)
 
-"""
-ButtonDeck defines the state of a button configuration.
-This is useful because we need to alter button behaviours based on events.
-"""
 class AlarmClock():
     def __init__(self):
         # Load config
         self._cfg = Config()
         # Initialize display module
-        self._display = display.Display(
+        self.display = display.Display(
             self._cfg.segment_pins,
             self._cfg.digit_pins,
         )
         # Initialize button modules
-        self.mode_button = button.Button(self._cfg.button_1_pin)
-        self.aux1_button = button.Button(self._cfg.button_2_pin)
-        self.aux2_button = button.Button(self._cfg.button_3_pin)
+        self.mode_button = MODE_BUTTON
+        self.option1_button = OPTION_1_BUTTON
+        self.option2_button = OPTION_2_BUTTON
 
         # Initialize the speaker
         self.speaker = SPEAKER
 
-        # Initialize alarm
-        self.alarm = None
+        # Initialize time
+        self.current_time = alarm_timestamp.AlarmTimestamp()
 
-        today = datetime.now()
-        self.alarm_time = datetime(
-            year=today.year,
-            month=today.month,
-            day=today.day,
-            hour=0,
-            minute=0,
-            second=0
-        )
-        self.alarm_active = False
+        # Initialize alarm
+        self.alarm = alarm.Alarm()
 
         # Controls content of the display (flashing)
         # TODO: This is reused by multiple children and not alarmclock logic. Perhaps move this into display or create a seperate class?
@@ -78,7 +69,7 @@ class AlarmClock():
 
 
 class NormalMode(AlarmClock):
-    def __init__(self, alarm):
+    def __init__(self, alarm: alarm.Alarm):
         super().__init__()
         self.alarm = alarm
         self.weather_api = weather_api.Location(
@@ -89,37 +80,42 @@ class NormalMode(AlarmClock):
 
     def refresh_display(self):
         alarm_dot = None
-        if self.alarm.is_active:
-            alarm_dot = 3
+        try:
+            if self.alarm.is_active:
+                alarm_dot = 3
 
-        self._display.update_content(current_time())
-        self._display.render(alarm_dot)
+            self.display.update_content(
+                self.current_time.get_current_with_refresh()
+            )
+            self.display.render(alarm_dot)
+        except Exception as e:
+            print(f"Could not refresh display: {e}")
 
     def mode_button_event(self, event):
         if event == 'hold':
             return AdjustAlarmMode(self.alarm)
         elif event == 'press':
-            return current_time()
+            self.current_time.refresh_current()
+            return self.current_time.get_current_with_refresh()
         elif event == 'alarm_trigger':
-            return AlarmBeepingMode(alarm)
+            return AlarmBeepingMode(self.alarm)
         return self
 
     def aux1_button_event(self, arg):
-        print("get weather")
-        self._display.update_content(self.weather_api.get_weather())
-        while self.aux1_button.is_high():
-            self._display.render()
+        self.display.update_content(self.weather_api.get_weather())
+        while self.option1_button.is_high():
+            self.display.render()
 
     def aux2_button_event(self, arg):
         # TODO: implement
-        self._display.update_content("9999")
-        while self.aux1_button.is_high():
-            self._display.render()
+        self.display.update_content("9999")
+        while self.option1_button.is_high():
+            self.display.render()
 
 
 class AdjustAlarmMode(AlarmClock):
 
-    def __init__(self, alarm):
+    def __init__(self, alarm: alarm.Alarm):
         super().__init__()
         self.alarm = alarm
         self._render_cooldown = 0.5
@@ -127,21 +123,26 @@ class AdjustAlarmMode(AlarmClock):
         self._empty_display = False
 
     def refresh_display(self):
+        try:
+            if (
+                datetime.now() - self._last_empty_render >=
+                timedelta(seconds=self._render_cooldown)
+            ):
+                self._empty_display = not self._empty_display
+                self._last_empty_render = datetime.now()
 
-        if datetime.now() - self._last_empty_render >= timedelta(seconds=self._render_cooldown):
-            self._empty_display = not self._empty_display
-            self._last_empty_render = datetime.now()
+            if self._empty_display:
+                self.display.update_content("    ")
+            else:
+                self.display.update_content(self.alarm.timestamp.get_current())
 
-        if self._empty_display:
-            self._display.update_content("    ")
-        else:
-            self._display.update_content(self.alarm.get_timestamp())
+            dot_num = None
+            if self.alarm.is_active:
+                dot_num = 3
 
-        dot_num = None
-        if self.alarm.is_active:
-            dot_num = 3
-
-        self._display.render(dot_num)
+            self.display.render(dot_num)
+        except Exception as e:
+            print(f"Could not refresh display: {e}")
 
     def mode_button_event(self, event):
         if event == 'hold':
@@ -152,37 +153,25 @@ class AdjustAlarmMode(AlarmClock):
         return self
 
     def aux1_button_event(self, arg):
-        self.alarm.increase_timestamp(minutes=1)
+        self.alarm.increase_timestamp()
         self.refresh_display()
 
     def aux2_button_event(self, arg):
-        self.alarm.decrease_timestamp(minutes=1)
+        self.alarm.decrease_timestamp()
         self.refresh_display()
 
 
 class AlarmBeepingMode(AlarmClock):
 
-    def __init__(self, alarm):
+    def __init__(self, alarm: alarm.Alarm):
         super().__init__()
         self.alarm = alarm
 
-    def refresh_display(self):
-        if datetime.now() - self._last_empty_render >= timedelta(seconds=self._render_cooldown):
-            self._empty_display = not self._empty_display
-            self._last_empty_render = datetime.now()
-
-        if self._empty_display:
-            self._display.update_content("    ")
-        else:
-            self._display.update_content(current_time())
-
     def mode_button_event(self, event):
-        if event == 'hold':
-            pass
-        elif event == 'press':
-            return NormalMode(alarm)
+        if event == 'press':
+            return NormalMode(self.alarm)
         elif event == 'alarm_trigger':
-            self._run_alarm_sequence()
+            return self._run_alarm_sequence()
         return self
 
     def aux1_button_event(self, arg):
@@ -197,14 +186,18 @@ class AlarmBeepingMode(AlarmClock):
             # Check if the button has been pressed between each note
             for note, duration in fur_elise:
                 # When any of the buttons are pressed while in AlarmBeepingMode
-                # alarm_acknowledged is set to true, breaking the while loop after resetting the
-                # alarm to NormalMode.
-                if self.aux1_button.is_high() or self.aux2_button.is_high() or self.mode_button.is_high():
+                # alarm_acknowledged is set to true.
+                if (
+                    self.option1_button.is_high() or
+                    self.option2_button.is_high() or
+                    self.mode_button.is_high()
+                ):
                     alarm_acknowledged = True
                     break
                 if note == 0:
                     self.speaker.stop()
                 else:
                     self.speaker.play_note(note, duration)
-        return self.mode_button_event('press')
 
+        self.alarm.is_active = False
+        return self.mode_button_event('press')

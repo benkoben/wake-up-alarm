@@ -31,19 +31,23 @@ class Location(WeatherApiClient):
             "&units=metric"
         ])
 
-        print(self.url)
-
     def _set_temperature(self, temp: float) -> str:
         value = f"{temp}".split(".")[0]
         self.temperature = value.rjust(4, " ")
         self.last_updated = datetime.now()
 
-    # retrieve weather data for a location. If TTL has not yet been reached then self.temperature is returned
+    # retrieve weather data for a location.
+    # If TTL has not yet been reached then self.temperature is returned
     def get_weather(self):
-        if (datetime.now() - self.last_updated).seconds > self.ttl * 60 or self.temperature is None:
-            print("cache miss")
-            response = requests.get(self.url)
-            forecast = json.loads(response.text)
-            self._set_temperature(forecast["main"]["temp"])
+        try:
+            if (
+                (datetime.now() - self.last_updated).seconds >
+                self.ttl * 60 or self.temperature is None
+            ):
+                response = requests.get(self.url)
+                forecast = json.loads(response.text)
+                self._set_temperature(forecast["main"]["temp"])
 
-        return self.temperature
+            return self.temperature
+        except Exception as e:
+            print(f"Could not retrieve weather: {e}")

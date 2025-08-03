@@ -1,13 +1,17 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
+from external import alarm_timestamp
 
 
 class Alarm():
     def __init__(self):
         self.is_active = False
-        self._timestamp = datetime.strptime("0000", "%H%M")
+        self.timestamp = alarm_timestamp.AlarmTimestamp(
+            hour="00",
+            minute="00"
+        )
 
     def get_timestamp(self):
-        return self._timestamp.strftime("%H%M")
+        return self.timestamp.get_current()
 
     def toggle_alarm(self):
         if self.is_active:
@@ -16,11 +20,11 @@ class Alarm():
             self.is_active = True
         print(f"alarm is now {self.is_active}")
 
-    def increase_timestamp(self, minutes):
-        self._timestamp += timedelta(minutes=minutes)
+    def increase_timestamp(self):
+        self.timestamp.increase_minute()
 
-    def decrease_timestamp(self, minutes):
-        self._timestamp -= timedelta(minutes=minutes)
+    def decrease_timestamp(self):
+        self.timestamp.decrease_minute()
 
     def __repr__(self):
         return self.__str__()

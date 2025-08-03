@@ -2,6 +2,9 @@ import RPi.GPIO as GPIO
 
 from . import characters
 
+GPIO.setmode(GPIO.BCM)
+
+
 class Digit():
     def __init__(self, pin: int, segments: tuple):
         self._activation_pin = pin
