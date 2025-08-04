@@ -20,7 +20,7 @@ class Device():
     # start runs the alarm clock's main control loop
     def start(self):
         while True:
-            
+
             alarm_time_passed = self.alarmclock.current_time > self.alarmclock.alarm.timestamp
             alarm_active = self.alarmclock.alarm.is_active
             active_mode = self.alarmclock.__repr__()

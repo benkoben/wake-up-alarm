@@ -1,13 +1,13 @@
-from datetime import timedelta
+from datetime import datetime
 from external import alarm_timestamp
-
 
 class Alarm():
     def __init__(self):
+        now = datetime.now()
         self.is_active = False
         self.timestamp = alarm_timestamp.AlarmTimestamp(
-            hour="00",
-            minute="00"
+            hour=now.hour,
+            minute=now.minute,
         )
 
     def get_timestamp(self):
@@ -17,7 +17,11 @@ class Alarm():
         if self.is_active:
             self.is_active = False
         else:
+            self.timestamp.reset_seconds()
+            self.timestamp.adjust_for_future()
             self.is_active = True
+            # When we activate the alarm
+            # Set the alarm's timestamp to a rounded minute
         print(f"alarm is now {self.is_active}")
 
     def increase_timestamp(self):

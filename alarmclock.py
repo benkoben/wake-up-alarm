@@ -1,5 +1,3 @@
-import time
-
 from config import WeatherConfig, Config
 from hardware import button, display, wake_up_speaker
 from external import weather_api, alarm_timestamp
@@ -199,5 +197,6 @@ class AlarmBeepingMode(AlarmClock):
                 else:
                     self.speaker.play_note(note, duration)
 
-        self.alarm.is_active = False
+        self.alarm.timestamp.adjust_for_future()
+        print(self.alarm.timestamp.__repr__())
         return self.mode_button_event('press')
