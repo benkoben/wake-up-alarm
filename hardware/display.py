@@ -1,61 +1,85 @@
-import RPi.GPIO as GPIO
+from machine import Pin
 import time
 
-from . import digit
-
-_REFRESH_RATE = 0.005
-
-GPIO.setmode(GPIO.BCM)
+import digit
+import shift_register
+import numberz
 
 
-class Display():
+class Display(shift_register.ShiftRegister):
 
-    def __init__(self, segment_pins: tuple, digit_pins: tuple):
-
-        if len(segment_pins) > 8:
-            raise Exception("segment_pins cannot be more than 8 in length")
+    def __init__(self, digit_pins: tuple, colon_switch_pin: int, colon_pwr_pin: int, serial_pin: Pin, clock_pin: Pin, latch_pin: Pin):
+        super().__init__(serial_pin, clock_pin, latch_pin)
 
         if len(digit_pins) > 4:
             raise Exception("digit_pins cannot be more than 4 in length")
 
-        self.content = ""
+        # will contain four numberz.Number
+        self.content = []
 
-        # GPIO ports for 7 segment of each digit anode
-        # 7 seg_segment_pins (11,7,4,2,1,10,5,3) +  100R inline
-        self._refresh_rate = _REFRESH_RATE
         self._sub_content_active = False
 
         # GPIO ports for each of the digit cathodes
         self._digits = (
-            digit.Digit(digit_pins[0], segment_pins),  # Left
-            digit.Digit(digit_pins[1], segment_pins),  # Middle left
-            digit.Digit(digit_pins[2], segment_pins),  # Middle right
-            digit.Digit(digit_pins[3], segment_pins)   # Right
+            digit.Digit(digit_pins[0]),  # Left
+            digit.Digit(digit_pins[1]),  # Middle left
+            digit.Digit(digit_pins[2]),  # Middle right
+            digit.Digit(digit_pins[3])   # Right
         )
 
-        # Set all segments to low
-        for segment in segment_pins:
-            GPIO.setup(segment, GPIO.OUT)
-            GPIO.output(segment, GPIO.LOW)
+        self.colon_switch = Pin(colon_switch_pin, Pin.OUT)
+        self.colon_pwr = Pin(colon_pwr_pin, Pin.OUT)
+        self.colon_pwr.high()
+        self.colon_switch.high()
 
     def update_content(self, content: str):
+        # Doing alarm logic in a generic class is not the best design
+        # but its works for now.
         if len(content) > 4:
             raise Exception("content cannot exceed lenght of 4")
-        self.content = content
 
-    def render(self, dot_number=None):
+        for c in content:
+            if not c.isdigit():
+                raise Exception("content must be a number")
 
-        if dot_number and dot_number > len(self._digits):
-            raise Exception(f"dot_number cannot be larger than {len(self._digits)}")
+            self.content.append(numberz.Number(int(c)))
 
-        for n, d in enumerate(self._digits):
+    def enable_dot_on(self, digit_index: int):
+        # is a no-op if digit_index > 3
+        if digit_index <= 3:
+            if isinstance(self.content[digit_index], numberz.Number):
+                self.content[digit_index].enable_dot()
 
-            d.turn_on()
-            # print(n, self.content, len(self.content))
-            d.display(self.content[n])
+    def disable_dot_on(self, digit_index: int):
+        # is a no-op if digit_index > 3
+        if digit_index <= 3:
+            if isinstance(self.content[digit_index], numberz.Number):
+                self.content[digit_index].enable_dot()
 
-            if dot_number is not None and n == dot_number:
-                d._activate_dot()
+    def render(self):
+        for i, num in enumerate(self.content):
+            for digit in self._digits:
+                digit.turn_off()
+            
+            value = num.value
+            self.write(value)
+            self._digits[i].turn_on()
+        for digit in self._digits:
+            digit.turn_off()
 
-            time.sleep(self._refresh_rate)
-            d.turn_off()
+if __name__ == "__main__":
+    digit_pins = (27, 20, 13, 10) # dp1, dp2, dp3, dp4
+    serial_pin = 18
+    latch_pin = 5
+    clock_pin = 14
+    colon_switch_pin = 28
+    colon_pwr_pin = 16
+
+    example_data = "1240"
+    display = Display(digit_pins, colon_switch_pin, colon_pwr_pin, serial_pin, clock_pin, latch_pin)
+    display.update_content(example_data)
+
+    print(f"rendering {example_data}")
+    while True:
+
+        display.render()
