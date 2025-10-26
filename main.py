@@ -1,9 +1,4 @@
-import RPi.GPIO as GPIO
-
 from device import Device
-
-GPIO.setmode(GPIO.BCM)
-
 
 def main():
     device = Device()
@@ -11,7 +6,6 @@ def main():
     try:
         device.start()
     finally:
-        GPIO.cleanup()
         device.shutdown()
 
 

@@ -1,22 +1,13 @@
 from config import WeatherConfig, Config
-from hardware import button, display, wake_up_speaker
+from hardware import display
 from external import weather_api, alarm_timestamp
 from datetime import datetime, timedelta
 from internal import alarm
 from notes import fur_elise
 
 
-# Set the as globals because we do not want to initialize the GPIO pins
-# each time the state machine switches state
-# (NormalMode -> AlarmAdjustMode -> ...).
-CONFIG = Config()
-SPEAKER = wake_up_speaker.WakeUpSpeaker(Config().buzzer_pin)
-MODE_BUTTON = button.Button(CONFIG.button_1_pin)
-OPTION_1_BUTTON = button.Button(CONFIG.button_2_pin)
-OPTION_2_BUTTON = button.Button(CONFIG.button_3_pin)
-
 class AlarmClock():
-    def __init__(self):
+    def __init__(self, mode_button, option_1_button, option_2_button, speaker):
         # Load config
         self._cfg = Config()
         # Initialize display module
@@ -25,12 +16,12 @@ class AlarmClock():
             self._cfg.digit_pins,
         )
         # Initialize button modules
-        self.mode_button = MODE_BUTTON
-        self.option1_button = OPTION_1_BUTTON
-        self.option2_button = OPTION_2_BUTTON
+        self.mode_button = mode_button
+        self.option1_button = option_1_button
+        self.option2_button = option_2_button
 
         # Initialize the speaker
-        self.speaker = SPEAKER
+        self.speaker = speaker
 
         # Initialize time
         self.current_time = alarm_timestamp.AlarmTimestamp()

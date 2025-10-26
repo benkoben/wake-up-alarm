@@ -1,16 +1,30 @@
 import time
 import alarmclock
-import RPi.GPIO as GPIO
+import networkfuncs
 
 from datetime import datetime
+from machine import Pin
 from internal import alarm
+from config import NetworkConfig, Config
+from hardware import button, wake_up_speaker
 
+# Set the as globals because we do not want to initialize the GPIO pins
+# each time the state machine switches state
+# (NormalMode -> AlarmAdjustMode -> ...).
+CONFIG = Config()
+SPEAKER = wake_up_speaker.WakeUpSpeaker(Config().buzzer_pin)
+MODE_BUTTON = button.Button(CONFIG.button_1_pin)
+OPTION_1_BUTTON = button.Button(CONFIG.button_2_pin)
+OPTION_2_BUTTON = button.Button(CONFIG.button_3_pin)
 
 class Device():
     def __init__(self): 
         self.alarmclock = alarmclock.NormalMode(
             alarm.Alarm()
         )
+        networkfuncs.set_wifi(NetworkConfig.wifi_ssid, NetworkConfig.wifi_key)
+        print("connected to wifi")
+        print("ready to start")
 
     def shutdown(self):
         print("Shutting down...")
