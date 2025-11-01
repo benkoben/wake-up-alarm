@@ -5,19 +5,40 @@ import machine
 
 from config import NetworkConfig
 
+_tz = {
+	"CEST": +2, # Summetime
+	"CET": +1
+}
+
 """
 Datetime is my own implementation to work with timestamps. Its larges unit is years and smallest is minutes.
 """
 class Datetime():
-	def __init__(self, tz=1):
-		self.year = ""
-		self.month = ""
-		self.day = ""
-		self.hour = ""
-		self.minute = ""
-		self.tz = tz	
+	def __init__(self, 
+			  year=None, month=None, day=None, 
+			  hour=None, minute=None, seconds=None,
+			  subseconds=None, weekday=None, yearday=None):
 
-	def replace(self, year=None, month=None, day=None, hour=None, minute=None):
+		self.year       = year
+		self.month      = month
+		self.day        = day
+		self.hour       = hour
+		self.minute     = minute
+		self.seconds    = seconds
+		self.subseconds = subseconds
+		self.weekday    = weekday
+		self.yearday    = yearday
+
+	def __lt__(self, other):
+		self_unix = time.mktime(self.date())
+
+	def __gt__(self, other):
+		pass
+
+	def replace(self, 
+			 year=None, month=None, day=None, 
+			 hour=None, minute=None, seconds=None,
+			 subseconds=None, weekday=None, yearday=None):
 		if year != None:
 			self.year = year
 		if month != None:
@@ -28,50 +49,94 @@ class Datetime():
 			self.hour = hour
 		if minute != None:
 			self.minute = minute
+		if seconds != None:
+			self.seconds = minute
+		if subseconds != None:
+			self.subseconds = minute
+		if weekday != None:
+			self.weekday = minute
+		if yearday != None:
+			self.yearday = minute
 
 	def date(self):
+		# Required format (year, month, mday, hour, minute, second, weekday, yearday)
 		return (
-			self.year,
-			self.month,
-			self.day,
-			self.hour,
-			self.minute
+			self.year, self.month, self.day, self.hour, self.minute,
+			self.seconds, self.subseconds, self.weekday, self.yearday
 		)
 	
 	def tomorrow(self):
-		return (
-			self.year,
-			self.month,
-			self.day + 1,
-			self.hour,
-			self.minute
+		self.replace(day=self.day + 1)
+		self.date()
+
+	def _is_sunday(self, year, month, day) -> bool:
+		t = (year, month, day, 0, 0, 0, 0, 0)
+ 		return time.localtime(time.mktime(t))[6] == 6
+
+	"""
+		_sunday returns a sunday as a Datetime object for given year, month and day
+	"""	
+	def _sunday(self, year, month, day) -> Datetime:
+		return Datetime(
+			year=year,
+			month=month,
+			day=day,
+			hour=0,
+			minute=0,
+			seconds=0,
+			subseconds=0,
+			weekday=6
 		)
+
+	"""
+		_last_sunday_in_march returns the current year's last sunday in March as a Datetime object
+	"""
+	def _last_sunday_in_march(self) -> Datetime:
+		# Loop trough the last week in march and find sunday
+		for day in range(31, 24, -1):
+			if self._is_sunday(self.year, 3, day):
+				return self._sunday(
+					self.year, 3, day
+				)
+
+	"""
+		_last_sunday_in_march returns the current year's last sunday in October as a Datetime object
+	"""
+	def _last_sunday_in_october(self) -> Datetime:
+		# Loop trough the last week in october and find sunday
+		for day in range(31, 24, -1):
+			if self._is_sunday(self.year, 10, day):
+				return self._sunday(
+					self.year, 10, day
+				)
+
+	def adjust_for_daylight_savings(self):
+		if self.__gt__(self._last_sunday_in_march()) and self.__lt__(self._last_sunday_in_october):
+			# This means that we are in summertime (CEST)
 
 	def now(self, use_ntp=False):
 		# Reset time
-		self.year = None
-		self.month = None
-		self.day = None
-		self.hour = None
-		self.minute = None
+		self.year    = None
+		self.month   = None
+		self.day     = None
+		self.hour    = None
+		self.minute  = None
+		self.weekday = None
 
 		# Update time
 		if use_ntp:
 			unix_ts = self._get_ntp_time_unix(NetworkConfig.ntp_server)
+
+			# (year, month, mday, hour, minute, second, weekday, yearday)
 			t = time.gmtime(unix_ts)
-			self.year   = t[0]
-			self.month  = t[1]
-			self.day    = t[2]
-			self.hour   = t[3] + self.tz
-			self.minute = t[4]
+			self.year, self.month, self.day, self.hour, self.minute, self.second, self.weekday, _ = t
+			# Adjust for timezone
+			self.hour += self.tz
 
 		else:
+			# (year, month, day, weekday, hours, minutes, seconds, subseconds)
 			t = machine.RTC().datetime()
-			self.year   = t[0]
-			self.month  = t[1]
-			self.day    = t[2]
-			self.hour   = t[3]
-			self.minute = t[4]
+			self.year, self.month, self.day, self.weekday, self.hour, self.minute, self.seconds, self.subseconds = t
 		
 	def _get_ntp_time_unix(self, NTP_HOST: str) -> str:
 		# Used to convert the received transmit_timestamp to unix time.
@@ -117,19 +182,10 @@ if __name__ == "__main__":
 	# in an hour its is: (2025, 10, 26, 21, 41)
 	# tomorrow is: (2025, 10, 27, 21, 41)
 
-	now = Datetime()
+	# GMT+1
+	now = Datetime(tz=1)
 	now.now(use_ntp=True)
 
 	print("According to NTP:")
 	print(f"time is now: {now.date()}")
-	now.replace(hour=now.hour + 1)
-	print(f"in an hour its is: {now.date()}")
-	print(f"tomorrow is: {now.tomorrow()}")
 
-
-	# TODO: this implementation does not week since RTC datetime format expects a weekday...
-	# Like so: (year, month, day, weekday, hours, minutes, seconds, subseconds)
-	# So I need to find a way to determine the weekday based on the timestamp received from NTP
-	print("------")
-	print("According to RTC:")
-	print(f"time is now: {machine.RTC().datetime()}")

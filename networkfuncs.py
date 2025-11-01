@@ -32,11 +32,11 @@ def set_wifi(ssid: str, key: str):
         ONBOARD_LED.toggle()
         # keep LED static for 3 seconds and then turn off to indicate success
         if nic.status() == network.STAT_GOT_IP:
+            print(f"Connected to wifi, status: {network_statuses[nic.status()]}")
             ONBOARD_LED.high()
             time.sleep(3)
             ONBOARD_LED.low()
             return
-        print(f"Connected to wifi, status: {network_statuses[nic.status()]}")
         time.sleep(0.5)
 
     print(f"Wifi status: {network_statuses[nic.status()]}")
