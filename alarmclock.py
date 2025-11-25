@@ -1,9 +1,12 @@
 from config import WeatherConfig, Config
 from hardware import display
-from external import weather_api, alarm_timestamp
 from datetime import datetime, timedelta
-from internal import alarm
-from notes import fur_elise
+
+import internal.notes as fur_elise
+import internal.alarm as alarm
+
+import external.weather_api as weather_api
+import external.alarm_timestamp as alarm_timestamp
 
 
 class AlarmClock():

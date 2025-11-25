@@ -1,12 +1,15 @@
 import time
 import alarmclock
-import networkfuncs
+import network
 
-from datetime import datetime
+import internal.alarm as alarm
+
+from external.time import Datetime as datetime
 from machine import Pin
-from internal import alarm
 from config import NetworkConfig, Config
-from hardware import button, wake_up_speaker
+
+import hardware.button as button
+import hardware.wake_up_speaker as wake_up_speaker
 
 # Set the as globals because we do not want to initialize the GPIO pins
 # each time the state machine switches state
@@ -22,7 +25,7 @@ class Device():
         self.alarmclock = alarmclock.NormalMode(
             alarm.Alarm()
         )
-        networkfuncs.set_wifi(NetworkConfig.wifi_ssid, NetworkConfig.wifi_key)
+        network.set_wifi(NetworkConfig.wifi_ssid, NetworkConfig.wifi_key)
         print("connected to wifi")
         print("ready to start")
 
@@ -62,7 +65,7 @@ class Device():
             if self.alarmclock.mode_button.is_high():
                 count = datetime.now()
                 while self.alarmclock.mode_button.is_high():
-                    if (datetime.now() - count).seconds >= 1:
+                    if (datetime.now() - count).second >= 1:
                         # switch state
                         self.alarmclock = self.alarmclock.mode_button_event('hold')
                         time.sleep(1)
@@ -82,17 +85,3 @@ class Device():
             # Sets the content on the 7 Segment 4 Digit display
             # Render different things depending on mode
             self.alarmclock.refresh_display()
-
-
-if __name__ == "__main__":
-    import RPi.GPIO as GPIO
-
-    GPIO.setmode(GPIO.BCM)
-
-    a = alarmclock.Alarmclock()
-    try:
-        while True:
-            a._display.update_content(" 0FF")
-            a._display.render()
-    finally:
-        GPIO.cleanup()

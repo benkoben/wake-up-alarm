@@ -1,9 +1,8 @@
-from datetime import datetime, timedelta
-
+import external.time as datetime
 
 class AlarmTimestamp():
     def __init__(self, hour=None, minute=None):
-        now = datetime.now()
+        now = datetime.now(use_ntp=True)
         self.timestamp = now
         if hour:
             self.timestamp.replace(hour=hour)
@@ -11,13 +10,13 @@ class AlarmTimestamp():
             self.timestamp.replace(minute=minute)
 
     def increase_minute(self):
-        self.timestamp += timedelta(minutes=1)
+        self.timestamp += datetime.timedelta(minutes=1)
         self.adjust_for_future()
         print(f"today is: {datetime.now()}")
         print(f"timestamp is now set to: {self.timestamp}")
 
     def decrease_minute(self):
-        self.timestamp -= timedelta(minutes=1)
+        self.timestamp -= datetime.timedelta(minutes=1)
         self.adjust_for_future()
         print(f"today is: {datetime.now()}")
         print(f"timestamp is now set to: {self.timestamp}")
@@ -48,7 +47,7 @@ class AlarmTimestamp():
         elif ts.date() < now.date():
             if ts_hhmmss < now_hhmmss:
                 # Past day, earlier time → set to tomorrow
-                new_date = now + timedelta(days=1)
+                new_date = now + datetime.timedelta(days=1)
                 self.timestamp = self.timestamp.replace(
                     year=new_date.year, month=new_date.month, day=new_date.day
                 )
@@ -63,7 +62,7 @@ class AlarmTimestamp():
         # If it's today, and still in the future — leave it alone
         if ts_hhmmss < now_hhmmss:
             # Still today, but earlier than now → bump to tomorrow
-            new_date = now + timedelta(days=1)
+            new_date = now + datetime.timedelta(days=1)
             self.timestamp = self.timestamp.replace(
                 year=new_date.year, month=new_date.month, day=new_date.day
             )
