@@ -8,11 +8,14 @@ import numberz
 
 class Display(shift_register.ShiftRegister):
 
-    def __init__(self, digit_pins: tuple, colon_switch_pin: int, colon_pwr_pin: int, serial_pin: Pin, clock_pin: Pin, latch_pin: Pin):
+    def __init__(self, digit_pins: tuple, colon_switch_pin: int, colon_pwr_pin: int, serial_pin: int, clock_pin: int, latch_pin: int):
         super().__init__(serial_pin, clock_pin, latch_pin)
 
         if len(digit_pins) > 4:
             raise Exception("digit_pins cannot be more than 4 in length")
+        
+        if len(digit_pins) == 0:
+            raise Exception("digit_pins must be provided")
 
         # will contain four numberz.Number
         self.content = []
@@ -43,6 +46,7 @@ class Display(shift_register.ShiftRegister):
                 raise Exception("content must be a number")
 
             self.content.append(numberz.Number(int(c)))
+            print(self.content)
 
     def enable_dot_on(self, digit_index: int):
         # is a no-op if digit_index > 3
@@ -64,22 +68,26 @@ class Display(shift_register.ShiftRegister):
             value = num.value
             self.write(value)
             self._digits[i].turn_on()
+
         for digit in self._digits:
             digit.turn_off()
 
+        
+
 if __name__ == "__main__":
-    digit_pins = (27, 20, 13, 10) # dp1, dp2, dp3, dp4
+    digit_pins = (20, 27, 13, 10) # dp1, dp2, dp3, dp4
     serial_pin = 18
     latch_pin = 5
     clock_pin = 14
     colon_switch_pin = 28
     colon_pwr_pin = 16
 
-    example_data = "1240"
+    example_data = "1337"
     display = Display(digit_pins, colon_switch_pin, colon_pwr_pin, serial_pin, clock_pin, latch_pin)
     display.update_content(example_data)
 
     print(f"rendering {example_data}")
     while True:
-
+        print(display.content)
+        time.sleep_ms(1)
         display.render()

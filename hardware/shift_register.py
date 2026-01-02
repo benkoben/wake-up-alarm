@@ -1,7 +1,7 @@
 from machine import Pin
 
 class ShiftRegister():
-    def __init__(self, serial_pin: Pin, clock_pin: Pin, latch_pin: Pin) -> None:
+    def __init__(self, serial_pin: int, clock_pin: int, latch_pin: int) -> None:
         
         self.serial_pin = Pin(serial_pin, Pin.OUT)
         self.clock_pin = Pin(clock_pin, Pin.OUT)
@@ -17,11 +17,15 @@ class ShiftRegister():
         self.clock_pin.low()
 
     def write(self, value):
+        print("SEQ START")
         for i in range(8):
           data = (value >> i) &1
+          print(data)
+          print("----")
           if data == 0:
             self.serial_pin.low()
           else:
             self.serial_pin.high()
           self.tick()
         self.latch()
+        print("SEQ END")
