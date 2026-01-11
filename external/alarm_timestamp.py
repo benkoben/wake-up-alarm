@@ -1,8 +1,9 @@
-import external.time as datetime
+from datetime import datetime, timedelta
+
 
 class AlarmTimestamp():
     def __init__(self, hour=None, minute=None):
-        now = datetime.now(use_ntp=True)
+        now = datetime.now()
         self.timestamp = now
         if hour:
             self.timestamp.replace(hour=hour)
@@ -10,13 +11,13 @@ class AlarmTimestamp():
             self.timestamp.replace(minute=minute)
 
     def increase_minute(self):
-        self.timestamp += datetime.timedelta(minutes=1)
+        self.timestamp += timedelta(minutes=1)
         self.adjust_for_future()
         print(f"today is: {datetime.now()}")
         print(f"timestamp is now set to: {self.timestamp}")
 
     def decrease_minute(self):
-        self.timestamp -= datetime.timedelta(minutes=1)
+        self.timestamp -= timedelta(minutes=1)
         self.adjust_for_future()
         print(f"today is: {datetime.now()}")
         print(f"timestamp is now set to: {self.timestamp}")
@@ -47,7 +48,7 @@ class AlarmTimestamp():
         elif ts.date() < now.date():
             if ts_hhmmss < now_hhmmss:
                 # Past day, earlier time → set to tomorrow
-                new_date = now + datetime.timedelta(days=1)
+                new_date = now + timedelta(days=1)
                 self.timestamp = self.timestamp.replace(
                     year=new_date.year, month=new_date.month, day=new_date.day
                 )
@@ -62,7 +63,7 @@ class AlarmTimestamp():
         # If it's today, and still in the future — leave it alone
         if ts_hhmmss < now_hhmmss:
             # Still today, but earlier than now → bump to tomorrow
-            new_date = now + datetime.timedelta(days=1)
+            new_date = now + timedelta(days=1)
             self.timestamp = self.timestamp.replace(
                 year=new_date.year, month=new_date.month, day=new_date.day
             )
@@ -72,17 +73,25 @@ class AlarmTimestamp():
 
     def get_current_with_refresh(self):
         self.refresh_current()
-        return self.__str__()
+        return self.get_current()
 
     def reset_seconds(self):
         self.timestamp = self.timestamp.replace(second=0)
-        print(self.__repr__())
+        #print(self.__repr__())
 
-    def __repr__(self):
-        return f"{self.__class__.__name__}: {self.timestamp.strftime('%Y/%m/%d %H:%M:%S')}"
+    # def __repr__(self):
+    #     return f"{self.__class__.__name__}: {self.timestamp.date()}"
 
-    def __str__(self):
-        return datetime.strftime(self.timestamp, "%H%M")
+    def __str__(self) -> str:
+        hour = str(self.timestamp.hour)
+        minute = str(self.timestamp.minute)
+        # add paddings
+        hour = "0" * max(0, 2 - len(hour)) + hour
+        minute = "0" * max(0, 2 - len(minute)) + minute
+
+        ts = "{}{}".format(hour, minute)
+        print(ts)
+        return ts
 
     def __eq__(self, other):
         return other.timestamp == self.timestamp

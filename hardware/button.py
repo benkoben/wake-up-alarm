@@ -4,7 +4,6 @@ class Button():
 
     def __init__(self, pin):
         self.pin = Pin(pin, Pin.IN, pull=Pin.PULL_DOWN)
-        self._setin()
 
     def is_high(self):
         # If the button is not working

@@ -6,7 +6,7 @@ class Config():
     # Sound
     buzzer_pin: int = 21
 
-    digit_pins: tuple = (27, 20, 13, 10)  # GPIO pins
+    digit_pins: list = [20, 27, 13, 10]  # GPIO pins
     clock_pin = 14
     latch_pin = 5
     serial_pin = 18

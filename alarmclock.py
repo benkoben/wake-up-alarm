@@ -1,30 +1,36 @@
-from config import WeatherConfig, Config
-from hardware import display
-from datetime import datetime, timedelta
-
-import internal.notes as fur_elise
+import time
+import internal.notes as notes
 import internal.alarm as alarm
-
 import external.weather_api as weather_api
 import external.alarm_timestamp as alarm_timestamp
 
+from config import WeatherConfig, Config
+from hardware import display, button
+
+from datetime import datetime, timedelta
+
 
 class AlarmClock():
-    def __init__(self, mode_button, option_1_button, option_2_button, speaker):
+    def __init__(self):
         # Load config
         self._cfg = Config()
         # Initialize display module
+
         self.display = display.Display(
-            self._cfg.segment_pins,
             self._cfg.digit_pins,
+            self._cfg.colon_switch_pin,
+            self._cfg.colon_pwr_pin,
+            self._cfg.serial_pin,
+            self._cfg.clock_pin,
+            self._cfg.latch_pin,
         )
         # Initialize button modules
-        self.mode_button = mode_button
-        self.option1_button = option_1_button
-        self.option2_button = option_2_button
+        self.mode_button = button.Button(self._cfg.button_1_pin)
+        self.option1_button = button.Button(self._cfg.button_2_pin)
+        self.option2_button = button.Button(self._cfg.button_3_pin)
 
         # Initialize the speaker
-        self.speaker = speaker
+        self.speaker = self._cfg.buzzer_pin
 
         # Initialize time
         self.current_time = alarm_timestamp.AlarmTimestamp()
@@ -57,7 +63,7 @@ class AlarmClock():
         return self.__class__.__name__
 
     def cleanup(self):
-        self.speaker.close()
+        pass
 
 
 class NormalMode(AlarmClock):
@@ -75,11 +81,11 @@ class NormalMode(AlarmClock):
         try:
             if self.alarm.is_active:
                 alarm_dot = 3
-
+            
             self.display.update_content(
                 self.current_time.get_current_with_refresh()
             )
-            self.display.render(alarm_dot)
+            self.display.render()
         except Exception as e:
             print(f"Could not refresh display: {e}")
 
@@ -94,7 +100,10 @@ class NormalMode(AlarmClock):
         return self
 
     def aux1_button_event(self, arg):
-        self.display.update_content(self.weather_api.get_weather())
+        current_tmp_outside = self.weather_api.get_weather()
+        if current_tmp_outside == None:
+            current_tmp_outside = "0000"
+        self.display.update_content(current_tmp_outside)
         while self.option1_button.is_high():
             self.display.render()
 
@@ -110,7 +119,7 @@ class AdjustAlarmMode(AlarmClock):
     def __init__(self, alarm: alarm.Alarm):
         super().__init__()
         self.alarm = alarm
-        self._render_cooldown = 0.5
+        self._render_cooldown_ms = 500
         self._last_empty_render = datetime.now()
         self._empty_display = False
 
@@ -118,7 +127,7 @@ class AdjustAlarmMode(AlarmClock):
         try:
             if (
                 datetime.now() - self._last_empty_render >=
-                timedelta(seconds=self._render_cooldown)
+                timedelta(milliseconds=self._render_cooldown_ms)
             ):
                 self._empty_display = not self._empty_display
                 self._last_empty_render = datetime.now()
@@ -128,11 +137,7 @@ class AdjustAlarmMode(AlarmClock):
             else:
                 self.display.update_content(self.alarm.timestamp.get_current())
 
-            dot_num = None
-            if self.alarm.is_active:
-                dot_num = 3
-
-            self.display.render(dot_num)
+            self.display.render()
         except Exception as e:
             print(f"Could not refresh display: {e}")
 
@@ -167,16 +172,16 @@ class AlarmBeepingMode(AlarmClock):
         return self
 
     def aux1_button_event(self, arg):
-        return NormalMode(alarm)
+        return NormalMode(self.alarm)
 
     def aux2_button_event(self, arg):
-        return NormalMode(alarm)
+        return NormalMode(self.alarm)
 
-    def _run_alarm_sequence(self) -> NormalMode:
+    def _run_alarm_sequence(self):
         alarm_acknowledged = False
         while not alarm_acknowledged:
             # Check if the button has been pressed between each note
-            for note, duration in fur_elise:
+            for note, duration in notes.fur_elise:
                 # When any of the buttons are pressed while in AlarmBeepingMode
                 # alarm_acknowledged is set to true.
                 if (

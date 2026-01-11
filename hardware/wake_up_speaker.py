@@ -1,25 +1,25 @@
-import RPi.GPIO as GPIO
-import time
+# import RPi.GPIO as GPIO
+# import time
 
-from gpiozero import TonalBuzzer
-from gpiozero.tones import Tone
+# from gpiozero import TonalBuzzer
+# from gpiozero.tones import Tone
 
 
-class WakeUpSpeaker():
+# class WakeUpSpeaker():
 
-    def __init__(self, pin):
-        self.buzzer = TonalBuzzer(pin)
+#     def __init__(self, pin):
+#         self.buzzer = TonalBuzzer(pin)
 
-    def play_note(self, note, duration):
-        try:
-            self.buzzer.play(Tone(note))
-            time.sleep(duration)
-            self.buzzer.stop()
-        except Exception as e:
-            print(f"Error playing note: {e}")
+#     def play_note(self, note, duration):
+#         try:
+#             self.buzzer.play(Tone(note))
+#             time.sleep(duration)
+#             self.buzzer.stop()
+#         except Exception as e:
+#             print(f"Error playing note: {e}")
 
-    def stop(self):
-        self.buzzer.stop()
+#     def stop(self):
+#         self.buzzer.stop()
 
-    def close(self):
-        self.buzzer.close()
+#     def close(self):
+#         self.buzzer.close()

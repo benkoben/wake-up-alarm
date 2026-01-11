@@ -1,14 +1,14 @@
 from machine import Pin
 import time
 
-import digit
-import shift_register
-import numberz
+from hardware import digit
+from hardware import shift_register
+from hardware import numberz
 
 
 class Display(shift_register.ShiftRegister):
 
-    def __init__(self, digit_pins: tuple, colon_switch_pin: int, colon_pwr_pin: int, serial_pin: int, clock_pin: int, latch_pin: int):
+    def __init__(self, digit_pins: list, colon_switch_pin: int, colon_pwr_pin: int, serial_pin: int, clock_pin: int, latch_pin: int):
         super().__init__(serial_pin, clock_pin, latch_pin)
 
         if len(digit_pins) > 4:
@@ -40,13 +40,13 @@ class Display(shift_register.ShiftRegister):
         # but its works for now.
         if len(content) > 4:
             raise Exception("content cannot exceed lenght of 4")
-
+        
+        self.content = []
         for c in content:
             if not c.isdigit():
                 raise Exception("content must be a number")
 
             self.content.append(numberz.Number(int(c)))
-            print(self.content)
 
     def enable_dot_on(self, digit_index: int):
         # is a no-op if digit_index > 3
@@ -75,7 +75,7 @@ class Display(shift_register.ShiftRegister):
         
 
 if __name__ == "__main__":
-    digit_pins = (20, 27, 13, 10) # dp1, dp2, dp3, dp4
+    digit_pins = [20, 27, 13, 10] # dp1, dp2, dp3, dp4
     serial_pin = 18
     latch_pin = 5
     clock_pin = 14

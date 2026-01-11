@@ -1,31 +1,22 @@
 import time
 import alarmclock
-import network
+import wifi
 
 import internal.alarm as alarm
 
-from external.time import Datetime as datetime
+from datetime import datetime
 from machine import Pin
 from config import NetworkConfig, Config
 
 import hardware.button as button
-import hardware.wake_up_speaker as wake_up_speaker
-
-# Set the as globals because we do not want to initialize the GPIO pins
-# each time the state machine switches state
-# (NormalMode -> AlarmAdjustMode -> ...).
-CONFIG = Config()
-SPEAKER = wake_up_speaker.WakeUpSpeaker(Config().buzzer_pin)
-MODE_BUTTON = button.Button(CONFIG.button_1_pin)
-OPTION_1_BUTTON = button.Button(CONFIG.button_2_pin)
-OPTION_2_BUTTON = button.Button(CONFIG.button_3_pin)
 
 class Device():
     def __init__(self): 
         self.alarmclock = alarmclock.NormalMode(
             alarm.Alarm()
         )
-        network.set_wifi(NetworkConfig.wifi_ssid, NetworkConfig.wifi_key)
+
+        wifi.set_wifi(NetworkConfig.wifi_ssid, NetworkConfig.wifi_key)
         print("connected to wifi")
         print("ready to start")
 
@@ -63,9 +54,9 @@ class Device():
             hold_event = False
             # Mode button
             if self.alarmclock.mode_button.is_high():
-                count = datetime.now()
+                delta = datetime.now()
                 while self.alarmclock.mode_button.is_high():
-                    if (datetime.now() - count).second >= 1:
+                    if (datetime.now() - delta).seconds >= 1:
                         # switch state
                         self.alarmclock = self.alarmclock.mode_button_event('hold')
                         time.sleep(1)

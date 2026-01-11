@@ -16,7 +16,7 @@ class Number():
         self._key = num
         self.value = _schema[num]
 
-    def __repr__(self) -> int:
+    def __repr__(self) -> str:
         return f"{self._key} = {self.value}"
 
     def enable_dot(self):

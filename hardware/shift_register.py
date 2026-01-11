@@ -17,15 +17,11 @@ class ShiftRegister():
         self.clock_pin.low()
 
     def write(self, value):
-        print("SEQ START")
         for i in range(8):
           data = (value >> i) &1
-          print(data)
-          print("----")
           if data == 0:
             self.serial_pin.low()
           else:
             self.serial_pin.high()
           self.tick()
         self.latch()
-        print("SEQ END")
