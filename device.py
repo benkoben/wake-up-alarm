@@ -5,8 +5,9 @@ import wifi
 import internal.alarm as alarm
 
 from datetime import datetime
-from machine import Pin
+from machine import Pin, RTC
 from config import NetworkConfig, Config
+from external import alarm_timestamp
 
 import hardware.button as button
 
@@ -20,6 +21,22 @@ class Device():
         print("connected to wifi")
         print("ready to start")
 
+        rtc = RTC()
+        now = alarm_timestamp.Ntp(NetworkConfig.ntp_server)
+        rtc.datetime((
+            # (year, month, day, week, hour, minute, second, microsecond)
+            now.year(),
+            now.month(),
+            now.yearday(),
+            None,
+            now.hour(),
+            now.minute(),
+            now.second(),
+            None
+        ))
+        print("RTC timestamp: ", rtc.datetime())
+
+
     def shutdown(self):
         print("Shutting down...")
         print("Cleaning up resources...")
@@ -27,6 +44,7 @@ class Device():
 
     # start runs the alarm clock's main control loop
     def start(self):
+
         while True:
 
             alarm_time_passed = self.alarmclock.current_time > self.alarmclock.alarm.timestamp
@@ -74,5 +92,5 @@ class Device():
                 self.alarmclock.aux2_button_event(None)
 
             # Sets the content on the 7 Segment 4 Digit display
-            # Render different things depending on mode
+            # Render different thingshour() depending on mode
             self.alarmclock.refresh_display()

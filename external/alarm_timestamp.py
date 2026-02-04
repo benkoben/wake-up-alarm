@@ -1,15 +1,15 @@
 import usocket as socket
 import struct
 import time
+import collections
 
-from datetime import date
-
-from config import NetworkConfig
+from datetime import date, datetime, timedelta
 
 _tz = {
 	"CEST": +2, # Summetime
 	"CET": +1
 }
+
 
 """
 Ntp fetches the current time from host upon initialization.
@@ -21,6 +21,8 @@ class Ntp():
 		self.current_time = time.gmtime(
 			self.fetch_current_time(host)
         )
+		self.adjust_for_daylight_savings()
+		print("time received from NTP: ", self.timestamp())
 		
 	def year(self):
         #     year includes the century (for example 2014).
@@ -29,6 +31,9 @@ class Ntp():
 	def month(self):
         #     month is 1-12
 		return self.current_time[1]
+	def week(self):
+        # TODO: implement this
+		pass
 	
 	def monthday(self):
         #     monthday is 1-31
@@ -36,10 +41,11 @@ class Ntp():
 	
 	def hour(self):
         #     hour is 0-23
-		return self.current_time[2]
+		return self.current_time[3]
 
 	def minute(self):
         #     minute is 0-59
+        # TODO: Add left padding
 		return self.current_time[4]
 	
 	def second(self):
@@ -74,7 +80,7 @@ class Ntp():
 			0, # minute
 			0, # seconds
 			6, # weekday
-			yearday, # TODO: I need to figure out the yearday of this particular sunday
+			yearday,
         ))
 
 	"""
@@ -150,13 +156,106 @@ class Ntp():
 		return UNIX_TIME
 	
 
+class AlarmTimestamp():
+    def __init__(self, hour=None, minute=None):
+        now = datetime.now()
+        self.timestamp = now
+
+        if hour:
+            self.timestamp.replace(hour=hour)
+        if minute:
+            self.timestamp.replace(minute=minute)
+
+    def increase_minute(self):
+        self.timestamp += timedelta(minutes=1)
+        self.adjust_for_future()
+        print(f"today is: {datetime.now()}")
+        print(f"timestamp is now set to: {self.timestamp}")
+
+    def decrease_minute(self):
+        self.timestamp -= timedelta(minutes=1)
+        self.adjust_for_future()
+        print(f"today is: {datetime.now()}")
+        print(f"timestamp is now set to: {self.timestamp}")
+
+    # adjusts the timestamp to one day in the future if
+    # the current timestamp is less than datetime.now()
+    def adjust_for_future(self):
+        now = datetime.now()
+
+        ts = self.timestamp
+
+        # Compare only hours and minutes
+        ts_hhmmss = ts.hour * 60 + ts.minute * 60 + ts.second
+        now_hhmmss = now.hour * 60 + now.minute * 60 + now.second
+
+        # Determine if timestamp is in the past, today, or future (by day)
+        if ts.date() > now.date():
+            if ts_hhmmss < now_hhmmss:
+                # Future day, earlier time → do nothing
+                return
+            else:
+                # Future day, later time → set to today
+                self.timestamp = self.timestamp.replace(
+                    year=now.year, month=now.month, day=now.day
+                )
+                return
+
+        elif ts.date() < now.date():
+            if ts_hhmmss < now_hhmmss:
+                # Past day, earlier time → set to tomorrow
+                new_date = now + timedelta(days=1)
+                self.timestamp = self.timestamp.replace(
+                    year=new_date.year, month=new_date.month, day=new_date.day
+                )
+                return
+            else:
+                # Past day, later time → set to today
+                self.timestamp = self.timestamp.replace(
+                    year=now.year, month=now.month, day=now.day
+                )
+                return
+
+        # If it's today, and still in the future — leave it alone
+        if ts_hhmmss < now_hhmmss:
+            # Still today, but earlier than now → bump to tomorrow
+            new_date = now + timedelta(days=1)
+            self.timestamp = self.timestamp.replace(
+                year=new_date.year, month=new_date.month, day=new_date.day
+            )
+
+    def get_current(self):
+        return self.__str__()
+
+    def get_current_with_refresh(self):
+        self.refresh_current()
+        return self.__str__()
+
+    def reset_seconds(self):
+        self.timestamp = self.timestamp.replace(second=0)
+
+    def __str__(self):
+        return f"{self.timestamp.hour}{self.timestamp.minute}"
+
+    def __eq__(self, other):
+        return other.timestamp == self.timestamp
+
+    def __gt__(self, other):
+        return self.timestamp > other.timestamp
+
+    def __lt__(self, other):
+        return self.timestamp < other.timestamp
+
+    def refresh_current(self):
+        self.timestamp = datetime.now()
+	
+
 if __name__ == "__main__":
 	now = Ntp(host="pool.ntp.org")
 
 	# In UTC format
-	print("timestamp recieved from NTP")
-	print(now.current_time)
-
+	print("UNIX timestamp recieved from NTP: ", time.mktime(now.current_time))
+	print("8-tuple format: ", now.current_time)
 	# Adjust for current timezone
 	print("timestamp after timezone adjustment (winter time)")
 	# Expect 1 hour shift since its currenly january

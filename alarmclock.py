@@ -1,4 +1,3 @@
-import time
 import internal.notes as notes
 import internal.alarm as alarm
 import external.weather_api as weather_api
@@ -192,9 +191,13 @@ class AlarmBeepingMode(AlarmClock):
                     alarm_acknowledged = True
                     break
                 if note == 0:
-                    self.speaker.stop()
+                    pass
+                    # self.speaker.stop()
+                    # TODO
                 else:
-                    self.speaker.play_note(note, duration)
+                    pass
+                    # TODO
+                    # self.speaker.play_note(note, duration)
 
         self.alarm.timestamp.adjust_for_future()
         print(self.alarm.timestamp.__repr__())
