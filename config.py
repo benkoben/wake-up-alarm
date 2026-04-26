@@ -18,6 +18,6 @@ class WeatherConfig():
     longitude = 13.00
 
 class NetworkConfig():
-    wifi_ssid = "JunoBabuno"
-    wifi_key = "Kooijsson9598"
+    wifi_ssid = "RFA_STATION_12"
+    wifi_key = "secret"
     ntp_server = "pool.ntp.org"
