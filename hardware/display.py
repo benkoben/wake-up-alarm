@@ -1,61 +1,78 @@
-import RPi.GPIO as GPIO
+from machine import Pin
 import time
 
-from . import digit
-
-_REFRESH_RATE = 0.005
-
-GPIO.setmode(GPIO.BCM)
-
+from hardware import tm1637
 
 class Display():
+    """
+        Display wraps around a TM1637 module to control the content
+        and call rendering
+    """
+    def __init__(self, clock_pin: int, dio_pin: int, brightness=2):
 
-    def __init__(self, segment_pins: tuple, digit_pins: tuple):
+        # will contain four numberz.Number
+        self.content = []
+        self.brightness = brightness
 
-        if len(segment_pins) > 8:
-            raise Exception("segment_pins cannot be more than 8 in length")
-
-        if len(digit_pins) > 4:
-            raise Exception("digit_pins cannot be more than 4 in length")
-
-        self.content = ""
-
-        # GPIO ports for 7 segment of each digit anode
-        # 7 seg_segment_pins (11,7,4,2,1,10,5,3) +  100R inline
-        self._refresh_rate = _REFRESH_RATE
-        self._sub_content_active = False
-
-        # GPIO ports for each of the digit cathodes
-        self._digits = (
-            digit.Digit(digit_pins[0], segment_pins),  # Left
-            digit.Digit(digit_pins[1], segment_pins),  # Middle left
-            digit.Digit(digit_pins[2], segment_pins),  # Middle right
-            digit.Digit(digit_pins[3], segment_pins)   # Right
+        self.tm1367 = tm1637.TM1637Display(
+                clock_pin,
+                dio_pin
         )
 
-        # Set all segments to low
-        for segment in segment_pins:
-            GPIO.setup(segment, GPIO.OUT)
-            GPIO.output(segment, GPIO.LOW)
-
+        self._sub_content_active = False
+    
+    """
+        Updates the content buffer. Wont show on screen until render is called.
+        If content is empty the content buffer is cleared.
+    """
     def update_content(self, content: str):
+        # Doing alarm logic in a generic class is not the best design
+        # but its works for now.
         if len(content) > 4:
             raise Exception("content cannot exceed lenght of 4")
+        if len(content) == 0:
+
+            # Do nothing if content is empty
+            self.content = []
+
         self.content = content
 
-    def render(self, dot_number=None):
+    def brightness_up(self):
+        self.brightness += 1
+        self.tm1367.setBrightness(self.brightness)
 
-        if dot_number and dot_number > len(self._digits):
-            raise Exception(f"dot_number cannot be larger than {len(self._digits)}")
+    def brightness_down(self):
+        self.brightness -= 1
+        self.tm1367.setBrightness(self.brightness)
 
-        for n, d in enumerate(self._digits):
+    def cycle_brightness(self):
+        self.brightness = (self.brightness + 1) % 3
+        self.tm1367.setBrightness(self.brightness)
 
-            d.turn_on()
-            # print(n, self.content, len(self.content))
-            d.display(self.content[n])
+    def clear(self):
+        self.tm1367.clear()
 
-            if dot_number is not None and n == dot_number:
-                d._activate_dot()
+    def render(self):
+        try:
+            self.tm1367.showNumberDec(int("".join(self.content)))
+        except Exception as e:
+            print(f"failed to render: Exception: {e}")
+        
 
-            time.sleep(self._refresh_rate)
-            d.turn_off()
+if __name__ == "__main__":
+    digit_pins = [20, 27, 13, 10] # dp1, dp2, dp3, dp4
+    serial_pin = 18
+    latch_pin = 5
+    clock_pin = 14
+    colon_switch_pin = 28
+    colon_pwr_pin = 16
+
+    example_data = "1337"
+    display = Display(digit_pins, colon_switch_pin, colon_pwr_pin, serial_pin, clock_pin, latch_pin)
+    display.update_content(example_data)
+
+    print(f"rendering {example_data}")
+    while True:
+        print(display.content)
+        time.sleep_ms(1)
+        display.render()

@@ -4,3 +4,5 @@ lib64
 pyvenv.cfg
 __pycache__
 .env
+skills-lock.json
+.micropico

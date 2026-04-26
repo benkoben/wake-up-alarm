@@ -1,4 +1,3 @@
-import os
 import requests
 import json
 
@@ -31,7 +30,7 @@ class Location(WeatherApiClient):
             "&units=metric"
         ])
 
-    def _set_temperature(self, temp: float) -> str:
+    def _set_temperature(self, temp: float):
         value = f"{temp}".split(".")[0]
         self.temperature = value.rjust(4, " ")
         self.last_updated = datetime.now()

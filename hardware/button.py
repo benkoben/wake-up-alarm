@@ -1,21 +1,10 @@
-import RPi.GPIO as GPIO
-
-GPIO.setmode(GPIO.BCM)
+from machine import Pin
 
 class Button():
 
     def __init__(self, pin):
-        self.pin = pin
-        self._setin()
+        self.pin = Pin(pin, Pin.IN, pull=Pin.PULL_UP)
 
-    def _setin(self):
-        GPIO.setup(self.pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+    def is_pressed(self):
+        return self.pin.value() == 0
 
-    def add_event(self, func):
-        GPIO.add_event_callback(self.pin, func)
-
-    def is_high(self):
-        return GPIO.input(self.pin) == GPIO.HIGH
-
-    def is_low(self):
-        return GPIO.input(self.pin) == GPIO.LOW
