@@ -1,17 +1,14 @@
 class Config():
-    button_1_pin: int = 4
-    button_2_pin: int = 2
-    button_3_pin: int = 7
+    button_1_pin: int = 15
+    button_2_pin: int = 14
+    button_3_pin: int = 13
 
     # Sound
-    buzzer_pin: int = 21
-
-    digit_pins: list = [20, 27, 13, 10]  # GPIO pins
-    clock_pin = 14
-    latch_pin = 5
-    serial_pin = 18
-    colon_switch_pin = 28
-    colon_pwr_pin = 16
+    buzzer_pin: int = 12
+    
+    # TM1367
+    clock_pin = 17
+    dio_pin = 16
 
 class WeatherConfig():
     # authentication keys
@@ -21,6 +18,6 @@ class WeatherConfig():
     longitude = 13.00
 
 class NetworkConfig():
-    wifi_ssid = "JunoBanuno"
+    wifi_ssid = "JunoBabuno"
     wifi_key = "Kooijsson9598"
     ntp_server = "pool.ntp.org"

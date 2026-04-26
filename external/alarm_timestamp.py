@@ -1,7 +1,6 @@
 import usocket as socket
 import struct
 import time
-import collections
 
 from datetime import date, datetime, timedelta
 
@@ -32,8 +31,7 @@ class Ntp():
         #     month is 1-12
 		return self.current_time[1]
 	def week(self):
-        # TODO: implement this
-		pass
+		return self.current_time[6]
 	
 	def monthday(self):
         #     monthday is 1-31
@@ -113,11 +111,10 @@ class Ntp():
 		new_ts = time.mktime(self.current_time)
 		current_epoch = time.mktime(self.current_time)
 		if current_epoch > self._last_sunday_in_march() and current_epoch < self._last_sunday_in_october():
-			# Adjust the hour
 			new_ts += _tz["CEST"] * 3600
 		else:	
 			new_ts += _tz["CET"] * 3600
-		self.current_time = time.gmtime(new_ts)
+		self.current_time = time.localtime(new_ts)
 			
 		
 	def fetch_current_time(self, NTP_HOST: str) -> int:
@@ -169,14 +166,19 @@ class AlarmTimestamp():
     def increase_minute(self):
         self.timestamp += timedelta(minutes=1)
         self.adjust_for_future()
-        print(f"today is: {datetime.now()}")
-        print(f"timestamp is now set to: {self.timestamp}")
 
     def decrease_minute(self):
-        self.timestamp -= timedelta(minutes=1)
-        self.adjust_for_future()
-        print(f"today is: {datetime.now()}")
-        print(f"timestamp is now set to: {self.timestamp}")
+        now = datetime.now()
+
+        new_timestamp = self.timestamp - timedelta(minutes=1)
+
+        if new_timestamp.hour * 60 + new_timestamp.minute < now.hour * 60 + now.minute:
+            new_date = now + timedelta(days=1)
+            self.timestamp = self.timestamp.replace(
+                year=new_date.year, month=new_date.month, day=new_date.day
+            )
+        else:
+            self.timestamp = new_timestamp
 
     # adjusts the timestamp to one day in the future if
     # the current timestamp is less than datetime.now()
@@ -185,13 +187,12 @@ class AlarmTimestamp():
 
         ts = self.timestamp
 
-        # Compare only hours and minutes
-        ts_hhmmss = ts.hour * 60 + ts.minute * 60 + ts.second
-        now_hhmmss = now.hour * 60 + now.minute * 60 + now.second
+        ts_minutes = ts.hour * 60 + ts.minute
+        now_minutes = now.hour * 60 + now.minute
 
         # Determine if timestamp is in the past, today, or future (by day)
         if ts.date() > now.date():
-            if ts_hhmmss < now_hhmmss:
+            if ts_minutes < now_minutes:
                 # Future day, earlier time → do nothing
                 return
             else:
@@ -202,7 +203,7 @@ class AlarmTimestamp():
                 return
 
         elif ts.date() < now.date():
-            if ts_hhmmss < now_hhmmss:
+            if ts_minutes < now_minutes:
                 # Past day, earlier time → set to tomorrow
                 new_date = now + timedelta(days=1)
                 self.timestamp = self.timestamp.replace(
@@ -217,7 +218,7 @@ class AlarmTimestamp():
                 return
 
         # If it's today, and still in the future — leave it alone
-        if ts_hhmmss < now_hhmmss:
+        if ts_minutes < now_minutes:
             # Still today, but earlier than now → bump to tomorrow
             new_date = now + timedelta(days=1)
             self.timestamp = self.timestamp.replace(
@@ -225,17 +226,23 @@ class AlarmTimestamp():
             )
 
     def get_current(self):
-        return self.__str__()
+        return self.get_display_string()
 
     def get_current_with_refresh(self):
         self.refresh_current()
-        return self.__str__()
+        return self.get_display_string()
+
+    def get_display_string(self):
+        return f"{self.timestamp.hour:0>2}{self.timestamp.minute:0>2}"
 
     def reset_seconds(self):
         self.timestamp = self.timestamp.replace(second=0)
 
     def __str__(self):
-        return f"{self.timestamp.hour}{self.timestamp.minute}"
+        return f"{self.timestamp.year}-{self.timestamp.month:0>2}-{self.timestamp.day:0>2} {self.timestamp.hour:0>2}:{self.timestamp.minute:0>2}"
+
+    def get_display_string(self):
+        return f"{self.timestamp.hour:0>2}{self.timestamp.minute:0>2}"
 
     def __eq__(self, other):
         return other.timestamp == self.timestamp
@@ -248,6 +255,9 @@ class AlarmTimestamp():
 
     def refresh_current(self):
         self.timestamp = datetime.now()
+
+    def __repr__(self):
+        return self.__str__()
 	
 
 if __name__ == "__main__":
